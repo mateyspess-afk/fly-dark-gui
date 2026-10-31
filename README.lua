@@ -1,8 +1,8 @@
 --[[
-    Fly Dark GUI | Universal (Fixed)
+    Fly Dark GUI | Universal (Fixed & RGB Edition)
     Personalized by: mateyspess-afk
     Original concept credits: XNEO / de_stupidtornadokid
-    Fixed and stabilized version
+    Improved version with RGB border and smooth movement
 ]]
 
 local Players = game:GetService("Players")
@@ -14,7 +14,6 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local Speeds = 1
 local Flying = false
-local TPWalking = false
 local MaxFlySpeed = 50
 
 pcall(function()
@@ -49,10 +48,20 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = MainFrame
 
+-- RGB Border Effect
 local UIStroke = Instance.new("UIStroke")
-UIStroke.Color = Color3.fromRGB(80, 80, 100)
-UIStroke.Thickness = 1.5
+UIStroke.Thickness = 2
 UIStroke.Parent = MainFrame
+
+local RGBConnection
+RGBConnection = RunService.RenderStepped:Connect(function()
+    if not MainFrame or not MainFrame.Parent then
+        if RGBConnection then RGBConnection:Disconnect() end
+        return
+    end
+    local hue = tick() % 5 / 5
+    UIStroke.Color = Color3.fromHSV(hue, 1, 1)
+end)
 
 -- Title Bar
 local TitleBar = Instance.new("Frame")
@@ -163,7 +172,6 @@ local UpConnection, DownConnection
 
 local function StopFly()
     Flying = false
-    TPWalking = false
 
     if BodyGyro then BodyGyro:Destroy() BodyGyro = nil end
     if BodyVelocity then BodyVelocity:Destroy() BodyVelocity = nil end
@@ -174,9 +182,6 @@ local function StopFly()
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then
             hum.PlatformStand = false
-            for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
-                pcall(function() hum:SetStateEnabled(state, true) end)
-            end
             hum:ChangeState(Enum.HumanoidStateType.Running)
         end
         local animate = char:FindFirstChild("Animate")
@@ -194,33 +199,16 @@ local function StartFly()
     local hum = char:FindFirstChildOfClass("Humanoid")
     if not hum then return end
 
-    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
     if not root then return end
 
     Flying = true
     FlyBtn.Text = "FLY ON"
     FlyBtn.BackgroundColor3 = Color3.fromRGB(40, 140, 80)
 
-    for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
-        pcall(function() hum:SetStateEnabled(state, false) end)
-    end
-    hum:ChangeState(Enum.HumanoidStateType.Swimming)
     hum.PlatformStand = true
-
     local animate = char:FindFirstChild("Animate")
     if animate then animate.Disabled = true end
-
-    TPWalking = true
-    for i = 1, Speeds do
-        task.spawn(function()
-            while TPWalking and Flying do
-                RunService.Heartbeat:Wait()
-                if hum and hum.Parent and hum.MoveDirection.Magnitude > 0 then
-                    char:TranslateBy(hum.MoveDirection)
-                end
-            end
-        end)
-    end
 
     BodyGyro = Instance.new("BodyGyro")
     BodyGyro.P = 9e4
@@ -229,11 +217,9 @@ local function StartFly()
     BodyGyro.Parent = root
 
     BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Velocity = Vector3.new(0, 0.1, 0)
+    BodyVelocity.Velocity = Vector3.new(0, 0, 0)
     BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
     BodyVelocity.Parent = root
-
-    local speed = 0
 
     FlyConnection = RunService.RenderStepped:Connect(function()
         if not Flying or not char or not char.Parent or not hum or hum.Health <= 0 then
@@ -242,21 +228,13 @@ local function StartFly()
         end
 
         local cam = workspace.CurrentCamera
-        local move = hum.MoveDirection
+        local moveDirection = hum.MoveDirection
+        local currentSpeed = Speeds * 20
 
-        if move.Magnitude > 0 then
-            speed = math.min(speed + 0.5 + (speed / MaxFlySpeed), MaxFlySpeed)
-            local look = cam.CFrame.LookVector
-            local right = cam.CFrame.RightVector
-            -- Correção feita aqui no operador diferente (\~= alterado para ~=)
-            BodyVelocity.Velocity = (look * (move.Z ~= 0 and (move.Z > 0 and -1 or 1) or 0) + right * move.X) * speed * 3
+        if moveDirection.Magnitude > 0 then
+            BodyVelocity.Velocity = cam.CFrame:VectorToWorldSpace(Vector3.new(moveDirection.X, 0, moveDirection.Z)) * currentSpeed
         else
-            speed = math.max(speed - 1, 0)
-            if speed > 0 then
-                BodyVelocity.Velocity = cam.CFrame.LookVector * speed * 2
-            else
-                BodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            end
+            BodyVelocity.Velocity = Vector3.new(0, 0, 0)
         end
 
         BodyGyro.CFrame = cam.CFrame
@@ -272,53 +250,13 @@ FlyBtn.MouseButton1Click:Connect(function()
 end)
 
 PlusBtn.MouseButton1Click:Connect(function()
-    Speeds = Speeds + 1
+    Speeds = math.clamp(Speeds + 1, 1, 10)
     SpeedLabel.Text = tostring(Speeds)
-    if Flying then
-        TPWalking = false
-        task.wait()
-        TPWalking = true
-        for i = 1, Speeds do
-            task.spawn(function()
-                while TPWalking and Flying do
-                    RunService.Heartbeat:Wait()
-                    local char = LocalPlayer.Character
-                    local hum = char and char:FindFirstChildOfClass("Humanoid")
-                    if hum and hum.MoveDirection.Magnitude > 0 then
-                        char:TranslateBy(hum.MoveDirection)
-                    end
-                end
-            end)
-        end
-    end
 end)
 
 MinusBtn.MouseButton1Click:Connect(function()
-    if Speeds <= 1 then
-        SpeedLabel.Text = "MIN"
-        task.wait(0.6)
-        SpeedLabel.Text = tostring(Speeds)
-        return
-    end
-    Speeds = Speeds - 1
+    Speeds = math.clamp(Speeds - 1, 1, 10)
     SpeedLabel.Text = tostring(Speeds)
-    if Flying then
-        TPWalking = false
-        task.wait()
-        TPWalking = true
-        for i = 1, Speeds do
-            task.spawn(function()
-                while TPWalking and Flying do
-                    RunService.Heartbeat:Wait()
-                    local char = LocalPlayer.Character
-                    local hum = char and char:FindFirstChildOfClass("Humanoid")
-                    if hum and hum.MoveDirection.Magnitude > 0 then
-                        char:TranslateBy(hum.MoveDirection)
-                    end
-                end
-            end)
-        end
-    end
 end)
 
 UpBtn.MouseButton1Down:Connect(function()
@@ -326,7 +264,7 @@ UpBtn.MouseButton1Down:Connect(function()
         local char = LocalPlayer.Character
         local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
         if root then
-            root.CFrame = root.CFrame * CFrame.new(0, 1.2, 0)
+            root.CFrame = root.CFrame + Vector3.new(0, 1.2, 0)
         end
     end)
 end)
@@ -344,7 +282,7 @@ DownBtn.MouseButton1Down:Connect(function()
         local char = LocalPlayer.Character
         local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
         if root then
-            root.CFrame = root.CFrame * CFrame.new(0, -1.2, 0)
+            root.CFrame = root.CFrame - Vector3.new(0, 1.2, 0)
         end
     end)
 end)
@@ -359,6 +297,7 @@ end)
 
 CloseBtn.MouseButton1Click:Connect(function()
     StopFly()
+    if RGBConnection then RGBConnection:Disconnect() end
     ScreenGui:Destroy()
 end)
 
