@@ -1,8 +1,8 @@
 --[[
-    Fly Dark GUI | Universal
+    Fly Dark GUI | Universal (Fixed)
     Personalized by: mateyspess-afk
     Original concept credits: XNEO / de_stupidtornadokid
-    Improved version - modern dark UI + cleaner code + more stable
+    Fixed and stabilized version
 ]]
 
 local Players = game:GetService("Players")
@@ -248,7 +248,8 @@ local function StartFly()
             speed = math.min(speed + 0.5 + (speed / MaxFlySpeed), MaxFlySpeed)
             local look = cam.CFrame.LookVector
             local right = cam.CFrame.RightVector
-            BodyVelocity.Velocity = (look * (move.Z \~= 0 and (move.Z > 0 and -1 or 1) or 0) + right * move.X) * speed * 3
+            -- Correção feita aqui no operador diferente (\~= alterado para ~=)
+            BodyVelocity.Velocity = (look * (move.Z ~= 0 and (move.Z > 0 and -1 or 1) or 0) + right * move.X) * speed * 3
         else
             speed = math.max(speed - 1, 0)
             if speed > 0 then
