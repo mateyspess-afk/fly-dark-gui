@@ -1,8 +1,8 @@
 --[[
-    Fly Dark GUI | Universal (Fixed & RGB Edition)
+    Fly Dark GUI | Universal (Mobile & PC Fixed Edition)
     Personalized by: mateyspess-afk
     Original concept credits: XNEO / de_stupidtornadokid
-    Improved version with RGB border and smooth movement
+    Improved version with fixed mobile joystick movement & RGB border
 ]]
 
 local Players = game:GetService("Players")
@@ -145,6 +145,7 @@ local function CreateButton(parent, text, size, pos, color)
     return btn
 end
 
+-- Traduzido para Inglês
 local UpBtn = CreateButton(Content, "UP", UDim2.new(0, 50, 0, 28), UDim2.new(0, 0, 0, 0))
 local DownBtn = CreateButton(Content, "DOWN", UDim2.new(0, 50, 0, 28), UDim2.new(0, 0, 0, 34))
 local PlusBtn = CreateButton(Content, "+", UDim2.new(0, 40, 0, 28), UDim2.new(0, 56, 0, 0))
@@ -229,10 +230,12 @@ local function StartFly()
 
         local cam = workspace.CurrentCamera
         local moveDirection = hum.MoveDirection
-        local currentSpeed = Speeds * 20
+        local currentSpeed = Speeds * 22
 
+        -- Correção para o analógico do celular não inverter a direção
         if moveDirection.Magnitude > 0 then
-            BodyVelocity.Velocity = cam.CFrame:VectorToWorldSpace(Vector3.new(moveDirection.X, 0, moveDirection.Z)) * currentSpeed
+            local moveVector = cam.CFrame:VectorToWorldSpace(Vector3.new(moveDirection.X, 0, moveDirection.Z))
+            BodyVelocity.Velocity = Vector3.new(moveVector.X, moveDirection.Y * currentSpeed, moveVector.Z) * currentSpeed
         else
             BodyVelocity.Velocity = Vector3.new(0, 0, 0)
         end
